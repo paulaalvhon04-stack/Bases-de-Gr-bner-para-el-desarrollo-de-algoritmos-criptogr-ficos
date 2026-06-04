@@ -490,10 +490,28 @@ def reduced_groebner_basis(generators: List[Polynomial], verbose: bool = False) 
     G = buchberger(generators, verbose=verbose)
 
     # Paso 2: base minimal (eliminar redundancias)
-    minimal = []
+    # Primero desduplicar: si dos elementos tienen el mismo LM,
+    # conservar solo el primero. El paso de reducción (Paso 4)
+    # producirá la forma canónica independientemente de cuál se conserve.
+    seen_lm = {}
+    G_dedup = []
     for g in G:
+        lm = g.LM()
+        if lm not in seen_lm:
+            seen_lm[lm] = True
+            G_dedup.append(g)
+
+    # Eliminar elementos dominados: g se elimina si existe h ≠ g
+    # tal que LM(h) divide ESTRICTAMENTE a LM(g)
+    # (divide, pero LM(g) no divide a LM(h), i.e., LM(h) ≠ LM(g))
+    minimal = []
+    for g in G_dedup:
         lm_g = g.LM()
-        if not any(lm_g.divisible_by(h.LM()) for h in G if h is not g):
+        dominated = any(
+            lm_g.divisible_by(h.LM()) and not h.LM().divisible_by(lm_g)
+            for h in G_dedup if h is not g
+        )
+        if not dominated:
             minimal.append(g)
 
     # Paso 3: hacer mónicos

@@ -147,8 +147,12 @@ def gaussian_elimination(matrix: np.ndarray, char: int = 0, tol: float = 1e-9) -
     Eliminación gaussiana por filas para obtener la forma escalonada
     reducida (rref). Esta es la operación central de F4.
 
-    Sobre ℚ (char=0): aritmética de punto flotante con tolerancia tol.
-    Sobre 𝔽_p (char=p): aritmética modular exacta.
+    NOTA SOBRE PRECISIÓN (limitación documentada):
+    Sobre ℚ (char=0) se usan flotantes de 64 bits. Para sistemas con
+    coeficientes de módulo grande o muchas cancelaciones, esto puede
+    introducir errores de redondeo. Para aritmética exacta, usar
+    `gaussian_elimination_exact` que trabaja con Fraction.
+    Sobre 𝔽_p (char=p): aritmética modular exacta con enteros.
     """
     M = matrix.copy()
     rows, cols = M.shape
@@ -168,7 +172,7 @@ def gaussian_elimination(matrix: np.ndarray, char: int = 0, tol: float = 1e-9) -
         # Normalizar fila pivote
         M[pivot_row] = M[pivot_row] / M[pivot_row, col]
 
-        # Eliminar en todas las demás filas (no solo las inferiores)
+        # Eliminar en todas las demás filas
         for r in range(rows):
             if r != pivot_row and abs(M[r, col]) > tol:
                 M[r] -= M[r, col] * M[pivot_row]
@@ -177,8 +181,52 @@ def gaussian_elimination(matrix: np.ndarray, char: int = 0, tol: float = 1e-9) -
         if pivot_row >= rows:
             break
 
-    # Limpiar valores casi nulos
     M[np.abs(M) < tol] = 0.0
+    return M
+
+
+def gaussian_elimination_exact(matrix_fractions: list) -> list:
+    """
+    Eliminación gaussiana EXACTA sobre ℚ usando aritmética de Fraction.
+
+    Evita los errores de redondeo del modo flotante. Es significativamente
+    más lento (O(n³) operaciones racionales en lugar de operaciones float),
+    pero matemáticamente correcto para cualquier entrada racional.
+
+    Parameters
+    ----------
+    matrix_fractions : lista de listas de Fraction (o int/float convertibles)
+
+    Returns
+    -------
+    lista de listas de Fraction en forma escalonada reducida
+    """
+    from fractions import Fraction
+    M = [[Fraction(x) for x in row] for row in matrix_fractions]
+    rows = len(M)
+    cols = len(M[0]) if rows > 0 else 0
+    pivot_row = 0
+
+    for col in range(cols):
+        # Buscar fila pivote no nula
+        pivot = next((r for r in range(pivot_row, rows) if M[r][col] != 0), None)
+        if pivot is None:
+            continue
+
+        M[pivot_row], M[pivot] = M[pivot], M[pivot_row]
+
+        # Normalizar: multiplicar por el inverso exacto del pivote
+        inv = Fraction(1, M[pivot_row][col])
+        M[pivot_row] = [x * inv for x in M[pivot_row]]
+
+        # Eliminar en todas las demás filas (aritmética exacta)
+        for r in range(rows):
+            if r != pivot_row and M[r][col] != 0:
+                factor = M[r][col]
+                M[r] = [M[r][c] - factor * M[pivot_row][c] for c in range(cols)]
+
+        pivot_row += 1
+
     return M
 
 

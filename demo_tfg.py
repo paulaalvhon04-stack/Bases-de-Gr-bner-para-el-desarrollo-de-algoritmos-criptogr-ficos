@@ -28,6 +28,12 @@ from f4_simplificado import (
     demo_macaulay_matrix, demo_f4_sistema_cuadratico,
     demo_comparacion,
 )
+from f5_firmas import (
+    f5_reduced, comparar_buchberger_f5,
+    contar_pares_descartados,
+    demo_firmas_y_criterios, demo_f5_completo,
+    demo_comparacion_tres_algoritmos, demo_f5_sobre_Fp,
+)
 from aplicaciones_criptografia import (
     UOV_Toy, hfe_toy, cstar_toy_attack,
     mq_attack_groebner, hybrid_attack,
